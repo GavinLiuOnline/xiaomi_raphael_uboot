@@ -35,8 +35,15 @@ static inline struct env_scsi_info *env_scsi_get_part(void)
 {
 	struct env_scsi_info *ep = &env_part;
 
-	if (scsi_get_blk_by_uuid(CONFIG_SCSI_ENV_PART_UUID, &ep->blk, &ep->part))
+	if (strlen(CONFIG_SCSI_ENV_PART_UUID)) {
+		if (scsi_get_blk_by_uuid(CONFIG_SCSI_ENV_PART_UUID, &ep->blk, &ep->part))
+			return NULL;
+	} else if (strlen(CONFIG_SCSI_ENV_PART_NAME)) {
+		if (scsi_get_blk_by_name(CONFIG_SCSI_ENV_PART_NAME, &ep->blk, &ep->part))
+			return NULL;
+	} else {
 		return NULL;
+	}
 
 	ep->count = CONFIG_ENV_SIZE / ep->part.blksz;
 
@@ -83,12 +90,12 @@ static int env_scsi_load(void)
 	int ret;
 
 	if (!ep) {
-		env_set_default(CONFIG_SCSI_ENV_PART_UUID " partition not found", 0);
+		env_set_default("partition not found", 0);
 		return -ENOENT;
 	}
 
 	if (blk_dread(ep->blk, ep->part.start, ep->count, &envbuf) != ep->count) {
-		env_set_default(CONFIG_SCSI_ENV_PART_UUID " partition read failed", 0);
+		env_set_default("partition read failed", 0);
 		return -EIO;
 	}
 
