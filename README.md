@@ -43,10 +43,17 @@
 
 > **快速查看刚才的启动日志（USB 已连接时）**
 >
-> 1. 在开机显示logo且出现解锁的图标后按音量-进入uboot菜单进入fastboot
-> 2. 电脑另开终端执行 `fastboot oem console`，即可导出本次开机以来的完整 U-Boot 日志
+> 1. 开机时长按音量下进入 U-Boot 菜单，选择 **Enable fastboot mode**
+> 2. 电脑执行 `fastboot oem console`，导出本次开机以来的完整 U-Boot 日志
 >
-> 说明：输出后需要重启才能继续使用
+> **确认已进入 U-Boot fastboot**（不是小米 ABL fastboot）：
+> ```bash
+> fastboot getvar version-bootloader   # 应显示 U-Boot 版本号
+> ```
+>
+> **关于输出内容**：`fastboot oem console` 导出的是 Console Record 缓冲区的**真实启动日志**，包括 `scsi scan`、设备探测、EFI 警告等。若期间进过启动菜单，日志里还会有菜单重绘的乱码（ANSI 转义序列），属于正常现象。
+>
+> **旧版镜像 bug**：`oem console` 输出结束后若出现大量 `was not queued to ep1in-bulk` 并死机，是 dwc3 USB 驱动问题，需重启手机。新版已修复，导出结束后会正常返回 `OKAY`，可继续执行其他 fastboot 命令。
 
 #### 方式一：启动菜单（无需电脑，推荐）
 
@@ -85,7 +92,7 @@ run fastboot
 fastboot oem console
 ```
 
-会逐行输出本次启动以来记录的完整日志（含 `scsi scan`、`bootefi` 报错等）。若缓冲区为空会提示 `Empty console`。
+会逐行输出本次启动以来记录的完整日志（含 `scsi scan`、`bootefi` 报错等）。若缓冲区为空会提示 `Empty console`。日志末尾出现菜单乱码或（旧版）dwc3 报错时，见上文说明。
 
 4. **查看当前状态**（非完整历史，但无需进 fastboot）— 在串口终端直接输入：
 
@@ -131,6 +138,8 @@ fastboot oem run bdinfo
 | `No USB controllers found` | 正常 | 开机阶段未启动 USB 时常见 |
 | `Cannot persist EFI variables without system partition` | 警告 | 无 system 分区，EFI 变量无法持久化，一般可忽略 |
 | `Missing RNG device for EFI_RNG_PROTOCOL` | 警告 | 无硬件 RNG，一般可忽略 |
+| `*** U-Boot Boot Menu ***` 及乱码行 | 正常 | 导出前进过启动菜单，含屏幕重绘的 ANSI 控制符 |
+| `was not queued to ep1in-bulk` 大量循环 | **异常（旧版 bug）** | dwc3 + `oem console` 触发死循环，需刷新版或重启 |
 
 ## 刷机方式
 

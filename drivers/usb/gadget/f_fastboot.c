@@ -406,7 +406,13 @@ static int fastboot_tx_write(const char *buffer, unsigned int buffer_size)
 	memcpy(in_req->buf, buffer, buffer_size);
 	in_req->length = buffer_size;
 
-	usb_ep_dequeue(fastboot_func->in_ep, in_req);
+	/*
+	 * MUSB needs this to avoid double-queueing; on dwc3 it errors when the
+	 * request already completed (e.g. fastboot oem console multiresponse)
+	 * and can loop forever as each error is recorded to the console buffer.
+	 */
+	if (IS_ENABLED(CONFIG_USB_MUSB_GADGET))
+		usb_ep_dequeue(fastboot_func->in_ep, in_req);
 
 	ret = usb_ep_queue(fastboot_func->in_ep, in_req, 0);
 	if (ret)
