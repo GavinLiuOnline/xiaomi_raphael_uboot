@@ -268,7 +268,7 @@ dts/upstream/src/arm64/qcom/sm8150-xiaomi-raphael.dts
 ## GitHub Actions 自动发布
 
 - 触发条件：每次 `push`
-- Release 标签：`build-<序号>`
+- Release 标签：分支名（如 `mailing`、`main`），同分支每次 push 会更新该 Release
 - 附件：`boot_nolog.img.zip`、`boot_log.img.zip`
 
 仓库需开启 **Settings → Actions → General → Workflow permissions → Read and write permissions**，否则无法创建 Release。
