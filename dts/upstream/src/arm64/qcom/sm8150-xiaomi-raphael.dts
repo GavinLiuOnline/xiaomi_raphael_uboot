@@ -76,7 +76,8 @@
 	};
 
 	gpio-keys {
-		compatible = "gpio-keys";
+		compatible = "gpio-keys-polled";
+		poll-interval = <20>;
 		pinctrl-0 = <&vol_up_n>;
 		pinctrl-names = "default";
 
@@ -597,6 +598,8 @@
 };
 
 &pm8150_gpios {
+	status = "okay";
+
 	vol_up_n: vol-up-n-state {
 		pins = "gpio6";
 		function = PMIC_GPIO_FUNC_NORMAL;

@@ -56,6 +56,8 @@
 #define REG_DIG_VIN_VIN0       0
 
 #define REG_DIG_PULL_CTL       0x42
+#define REG_DIG_PULL_UP_30     0x0
+#define REG_DIG_PULL_DOWN      0x4
 #define REG_DIG_PULL_NO_PU     0x5
 
 #define REG_LV_MV_OUTPUT_CTL	0x44
@@ -127,9 +129,9 @@ static int qcom_gpio_set_direction(struct udevice *dev, unsigned int offset,
 
 	_qcom_gpio_set_direction(dev, offset, input, value);
 
-	/* Set the right pull (no pull) */
+	/* Active-low buttons need a pull-up to read reliably */
 	ret = pmic_reg_write(plat->pmic, gpio_base + REG_DIG_PULL_CTL,
-			     REG_DIG_PULL_NO_PU);
+			     input ? REG_DIG_PULL_UP_30 : REG_DIG_PULL_NO_PU);
 	if (ret < 0)
 		return ret;
 
@@ -309,6 +311,8 @@ static int qcom_gpio_probe(struct udevice *dev)
 	switch (val) {
 	case REG_SUBTYPE_GPIO_4CH:
 	case REG_SUBTYPE_GPIOC_4CH:
+	case REG_SUBTYPE_GPIO_8CH:
+	case REG_SUBTYPE_GPIOC_8CH:
 		plat->lv_mv_type = false;
 		break;
 	case REG_SUBTYPE_GPIO_LV:

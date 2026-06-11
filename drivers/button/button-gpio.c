@@ -59,6 +59,9 @@ static int button_gpio_probe(struct udevice *dev)
 	if (ret || !dm_gpio_is_valid(&priv->gpio))
 		return ret;
 
+	if (priv->gpio.flags & GPIOD_ACTIVE_LOW)
+		dm_gpio_clrset_flags(&priv->gpio, 0, GPIOD_PULL_UP);
+
 	ret = dev_read_u32(dev, "linux,code", &priv->linux_code);
 
 	return ret;
