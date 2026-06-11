@@ -63,6 +63,8 @@ fit-dtb.blob*
 !.clang-format
 !.get_maintainer.*
 !.gitattributes
+!.github
+!.github/**
 !.gitignore
 !.mailmap
 

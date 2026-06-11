@@ -1,0 +1,89 @@
+name: Build and Release
+
+on:
+  push:
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc bison build-essential device-tree-compiler flex \
+            gcc-aarch64-linux-gnu libssl-dev \
+            python3 python3-pyelftools python3-setuptools swig
+
+      # mkbootimg in Ubuntu repos is broken on some releases
+      - name: Build mkbootimg
+        run: |
+          git clone --depth=1 https://github.com/osm0sis/mkbootimg
+          make -C mkbootimg CFLAGS=-Wstringop-overflow=0 mkbootimg
+          echo "$PWD/mkbootimg" >> "$GITHUB_PATH"
+
+      - name: Build nolog image
+        run: ./build-raphael-bootimg.sh nolog
+
+      - name: Package nolog image
+        run: |
+          mkdir -p dist
+          cp boot_nolog.img dist/u-boot.img
+          printf '%s\n' \
+            'Xiaomi Redmi K20 Pro (Raphael) U-Boot — nolog variant' \
+            '' \
+            'ABL splash preserved; boot logs go to serial only.' \
+            '' \
+            'Flash:' \
+            '  fastboot flash boot u-boot.img' \
+            '  fastboot flash cache xiaomi-k20pro-boot.img' \
+            '  fastboot erase dtbo' \
+            > dist/FLASH.txt
+          (cd dist && zip -9 ../boot_nolog.img.zip u-boot.img FLASH.txt)
+
+      - name: Clean tree before log build
+        run: make mrproper
+
+      - name: Build log image
+        run: ./build-raphael-bootimg.sh log
+
+      - name: Package log image
+        run: |
+          mkdir -p dist
+          cp boot_log.img dist/u-boot.img
+          printf '%s\n' \
+            'Xiaomi Redmi K20 Pro (Raphael) U-Boot — log variant' \
+            '' \
+            'Shows boot messages on the display (vidconsole).' \
+            '' \
+            'Flash:' \
+            '  fastboot flash boot u-boot.img' \
+            '  fastboot flash cache xiaomi-k20pro-boot.img' \
+            '  fastboot erase dtbo' \
+            > dist/FLASH.txt
+          (cd dist && zip -9 ../boot_log.img.zip u-boot.img FLASH.txt)
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Raphael U-Boot build ${{ github.run_number }}
+          body: |
+            Automated build for `${{ github.sha }}` on `${{ github.ref_name }}`.
+
+            | Artifact | Description |
+            |----------|-------------|
+            | `boot_nolog.img.zip` | ABL splash preserved, logs on serial only |
+            | `boot_log.img.zip` | Boot logs shown on screen |
+
+            Unzip and flash `u-boot.img` to the **boot** partition.
+          files: |
+            boot_nolog.img.zip
+            boot_log.img.zip
+          generate_release_notes: true
