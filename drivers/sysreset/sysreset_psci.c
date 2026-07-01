@@ -21,8 +21,13 @@ static int psci_sysreset_request(struct udevice *dev, enum sysreset_t type)
 		psci_sys_reset(type);
 		break;
 	case SYSRESET_POWER_OFF:
+#if IS_ENABLED(CONFIG_SYSRESET_QCOM_PSHOLD)
+		/* Qualcomm phones power off via PMIC PS_HOLD, not PSCI. */
+		return -ENOSYS;
+#else
 		psci_sys_poweroff();
 		break;
+#endif
 	default:
 		return -EPROTONOSUPPORT;
 	}

@@ -19,6 +19,9 @@
 #include <asm/global_data.h>
 #include <u-boot/crc.h>
 #include <asm/sections.h>
+#if CONFIG_IS_ENABLED(ARCH_SNAPDRAGON)
+#include <mach/poweroff.h>
+#endif
 
 /* For manual relocation support */
 DECLARE_GLOBAL_DATA_PTR;
@@ -261,7 +264,9 @@ static void EFIAPI efi_reset_system_boottime(
 		do_reset(NULL, 0, 0, NULL);
 		break;
 	case EFI_RESET_SHUTDOWN:
-#ifdef CONFIG_CMD_POWEROFF
+#if CONFIG_IS_ENABLED(ARCH_SNAPDRAGON)
+		qcom_soc_poweroff();
+#elif defined(CONFIG_CMD_POWEROFF)
 		do_poweroff(NULL, 0, 0, NULL);
 #endif
 		break;
