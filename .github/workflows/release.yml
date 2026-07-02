@@ -78,7 +78,7 @@ jobs:
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}-Release
           name: Raphael U-Boot (${{ github.ref_name }})
           body: |
             Automated build for `${{ github.sha }}` on branch `${{ github.ref_name }}`.
