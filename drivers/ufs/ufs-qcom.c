@@ -205,16 +205,28 @@ static int ufs_get_max_pwr_mode(struct ufs_hba *hba,
 	struct ufs_qcom_priv *priv = dev_get_priv(hba->dev);
 	u32 max_gear = ufs_qcom_get_hs_gear(hba);
 
+	/*
+	 * Force conservative mode for SM8150 devices with mixed UFS
+	 * vendors. Some UFS chips fail at HS-G3 and need HS-G2.
+	 */
+	max_gear = min(max_gear, (u32)UFS_HS_G2);
 	max_pwr_info->info.gear_rx = min(max_pwr_info->info.gear_rx, max_gear);
 	/* Qualcomm UFS only support symmetric Gear */
 	max_pwr_info->info.gear_tx = max_pwr_info->info.gear_rx;
+
+	/*
+	 * Also restrict to single lane for maximum compatibility.
+	 */
+	max_pwr_info->info.lane_rx = min_t(u32, max_pwr_info->info.lane_rx, 1);
+	max_pwr_info->info.lane_tx = min_t(u32, max_pwr_info->info.lane_tx, 1);
 
 	if (priv->hw_ver.major >= 0x4 && max_pwr_info->info.gear_rx > UFS_HS_G3)
 		ufshcd_dme_set(hba,
 			       UIC_ARG_MIB(PA_TXHSADAPTTYPE),
 			       PA_INITIAL_ADAPT);
 
-	dev_info(hba->dev, "Max HS Gear: %d\n", max_pwr_info->info.gear_rx);
+	dev_info(hba->dev, "Max HS Gear: %d (forced conservative)\n",
+		 max_pwr_info->info.gear_rx);
 
 	return 0;
 }

@@ -1815,6 +1815,12 @@ static int ufs_get_device_desc(struct ufs_hba *hba,
 	/* Null terminate the model string */
 	dev_desc->model[MAX_MODEL_LEN] = '\0';
 
+	dev_info(hba->dev, "UFS vendor=0x%04x spec=0x%02x%02x model=%s\n",
+		 dev_desc->wmanufacturerid,
+		 desc_buf[DEVICE_DESC_PARAM_SPEC_VER],
+		 desc_buf[DEVICE_DESC_PARAM_SPEC_VER + 1],
+		 dev_desc->model);
+
 out:
 	kfree(desc_buf);
 	return err;
@@ -2144,7 +2150,7 @@ static int ufs_start(struct ufs_hba *hba)
 			return ret;
 		}
 
-		debug("UFS Device %s is up!\n", hba->dev->name);
+		dev_info(hba->dev, "UFS Device %s is up!\n", hba->dev->name);
 		ufshcd_print_pwr_info(hba);
 	}
 
@@ -2245,15 +2251,17 @@ int ufshcd_probe(struct udevice *ufs_dev, struct ufs_hba_ops *hba_ops)
 static int ufs_scsi_buffer_aligned(struct udevice *scsi_dev, struct bounce_buffer *state)
 {
 #ifdef CONFIG_PHYS_64BIT
-	struct ufs_hba *hba = dev_get_uclass_priv(scsi_dev->parent);
 	uintptr_t ubuf = (uintptr_t)state->user_buffer;
 	size_t len = state->len_aligned;
 
-	/* Check if below 32bit boundary */
-	if ((hba->quirks & UFSHCD_QUIRK_BROKEN_64BIT_ADDRESS) &&
-	    ((ubuf >> 32) || (ubuf + len) >> 32)) {
-		dev_dbg(scsi_dev, "Buffer above 32bit boundary %lx-%lx\n",
-			ubuf, ubuf + len);
+	/*
+	 * SM8150 UFS host on Raphael rejects DMA descriptors with
+	 * addresses above the 32-bit boundary. Force a low bounce
+	 * buffer regardless of the advertised 64-bit capability.
+	 */
+	if ((ubuf >> 32) || ((ubuf + len) >> 32)) {
+		dev_info(scsi_dev, "Buffer above 32bit boundary %lx-%lx\n",
+			 ubuf, ubuf + len);
 		return 0;
 	}
 #endif
